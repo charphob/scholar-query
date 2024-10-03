@@ -1,13 +1,16 @@
+# Imports
 import streamlit as st
 import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.query import Rerank, MetadataQuery, Filter
 from weaviate.classes.aggregate import GroupByAggregate
 
+# Using Streamlit secrets management
 wcd_url = st.secrets["weaviate"]["weaviate_url"]
 wcd_api_key = st.secrets["weaviate"]["weaviate_api"]
 cohere_api_key = st.secrets["cohere"]["cohere_prod"]
 
+# Connecting to Weaviate
 client = weaviate.connect_to_weaviate_cloud(
     cluster_url=wcd_url,
     auth_credentials=wvc.init.Auth.api_key(wcd_api_key),
@@ -15,12 +18,15 @@ client = weaviate.connect_to_weaviate_cloud(
     skip_init_checks=True,
 )
 
+# Set sidebar title and subheader
 st.sidebar.title(":books: ScholarQuery")
 st.sidebar.subheader("🔍 Uncover Meaningful Insights with GenAI Semantic Search")
 
+# Generate a list of all collections
 response = client.collections.list_all(simple=False)
 classes = sorted(list(response.keys()))
 
+# Collection selection
 selected_collection = st.sidebar.selectbox(
     "Which book selection?",
     options=classes,
@@ -28,16 +34,20 @@ selected_collection = st.sidebar.selectbox(
     help="Select one of the available book collections to search in.",
 )
 
+# Retrieve client connection object to chosen collection
 book_collection = client.collections.get(selected_collection)
 
+# Retrieve list of all books in the collection
 book_response = book_collection.aggregate.over_all(
     group_by=GroupByAggregate(
         prop="book",
     )
 )
 
+# Parse into a list of books
 list_of_books = [group.grouped_by.value for group in book_response.groups]
 
+# Select the book, if not selected, includes all books
 selected_book = st.sidebar.selectbox(
     "Which book?",
     options=list_of_books,
@@ -45,14 +55,17 @@ selected_book = st.sidebar.selectbox(
     help="You can search over a specific book. Search over all books is not supported.",
 )
 
+# Retrieve list of topics
 topic_response = book_collection.aggregate.over_all(
     group_by=GroupByAggregate(
         prop="topic",
     )
 )
 
+# Parse into a list of topics
 list_of_topics = [group.grouped_by.value for group in topic_response.groups]
 
+# Select topics, multiple choice
 selected_topics = st.sidebar.multiselect(
     "Which topics?",
     options=list_of_topics,
@@ -61,6 +74,7 @@ selected_topics = st.sidebar.multiselect(
 
 selected_filters = []
 
+# Construct a Filter object that combines both book and topic selections, None if empty
 if selected_book:
     selected_filters.append(Filter.by_property("book").equal(selected_book))
 
@@ -72,6 +86,7 @@ if selected_filters:
 else:
     final_filters = None
 
+# Select search mode
 search_mode = st.sidebar.radio(
     "Select search mode:",
     captions=[
@@ -83,6 +98,7 @@ search_mode = st.sidebar.radio(
     help="Select the search mode to use for the query.",
 )
 
+# Select top-K, arbitrarily limited to max 10 for performance and costs
 top_k = st.sidebar.slider(
     "Select number of ranked results",
     min_value=1,
@@ -91,11 +107,13 @@ top_k = st.sidebar.slider(
     help="Select the number of top results to return for the query. Limited to maximum of 10 results.",
 )
 
+# Search query input
 query = st.sidebar.text_input(
     "Enter your query",
     help="Enter the query to semantically search for in the selected collection. Query can be a natural language question or any other text.",
 )
 
+# Rerank choice, if chosen, insert rerank query and construct rerank object
 rerank_choice = st.sidebar.toggle("Use Rerank!", False)
 rerank = None
 
@@ -112,8 +130,10 @@ if rerank_choice:
             query=rerank_query,
         )
 
+# Search button
 search_clicked = st.sidebar.button("Search")
 
+# Navigation tabs
 tab1, tab2, tab3, tab4 = st.tabs(
     [
         ":mag_right: Search",
@@ -123,16 +143,17 @@ tab1, tab2, tab3, tab4 = st.tabs(
     ]
 )
 
-
+# Renders small score bars for relevance and rerank relevance
 def render_progress_bar(container, value):
     l, c, r = container.columns([0.1, 0.8, 0.1])
     l.write(":no_entry_sign:")
     c.progress(int(value))
     r.write(":dart:")
 
-
+# Display results
 def display_result(container, result, i, rerank_choice):
 
+    # Extract data from result
     text = result.properties["text"]
     topic = result.properties["topic"]
     book = result.properties["book"]
@@ -146,6 +167,7 @@ def display_result(container, result, i, rerank_choice):
 
     reranked_relevance = rerank_score * 100 if rerank_score is not None else None
 
+    # Build content containers and insert data
     st.subheader(f"Result {i + 1}")
     left, right = container.columns([0.3, 0.7], gap="large")
     left.write(f"**Relevance:** {round(relevance, 1)}%")
@@ -163,7 +185,7 @@ def display_result(container, result, i, rerank_choice):
 
     right.write(f"**Text:** {text}")
 
-
+# Run different search modes, activating different Weaviate search calls.
 def run_search():
     if search_mode == "Explained Search":
         prompt = """Given following text: {text}, perform these tasks:
@@ -232,7 +254,7 @@ def run_search():
         else:
             st.write("No results found.")
 
-
+# Navigation and content tabs
 with tab1:
     if not search_clicked:
         st.title("📚 Welcome to ScholarQuery!")
