@@ -1,0 +1,5 @@
+.env
+kitab
+*.csv
+*.parquet
+*.streamlit
