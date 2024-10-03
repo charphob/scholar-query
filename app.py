@@ -4,11 +4,6 @@ import weaviate.classes as wvc
 from weaviate.classes.query import Rerank, MetadataQuery, Filter
 from weaviate.classes.aggregate import GroupByAggregate
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
 # Load environment variables for Weaviate and Cohere API keys
 wcd_url = st.secrets['weaviate']['weaviate_url']
 wcd_api_key = st.secrets['weaviate']['weaviate_api']
