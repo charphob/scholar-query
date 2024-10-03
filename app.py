@@ -216,7 +216,7 @@ def run_search():
             st.write("No results found.")
 
     elif search_mode == "Summary Generation Search":
-        task_prompt = """Provide a short summary in English based on the query results. The summary should represent the content of combined results. Address the query even if it is not a proper question.
+        task_prompt = """Generate a short summary in English based on the query results. The summary should represent the content of combined results. Address the query even if it is not a proper question. The result needs to be in English.
         """
         response = book_collection.generate.near_text(
             query=query,
