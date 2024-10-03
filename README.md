@@ -36,7 +36,7 @@ This project leverages a wide range of tools and frameworks to achieve its goals
 
 The ScholarQuery app provides an interactive interface for users to explore the dataset using semantic search, summarization, and topic-based filtering.
 
-:point_right: [ScholarQuery](scholarquery.streamlit.app)
+:point_right: [ScholarQuery](https://scholarquery.streamlit.app)
 
 ## :link: Useful Links
 
